@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract BlockSwarmDAO {
+    // Member struct to store member information
+    struct Member {
+        address memberAddress;
+        uint256 votingPower;
+    }
+
+    // Mapping to track members and their voting power
+    mapping(address => Member) public members;
+
+    // Event to notify when a new member joins the DAO
+    event MemberJoined(address indexed memberAddress, uint256 votingPower);
+
+    // Function to allow users to join the DAO
+    function joinDAO() public {
+        require(members[msg.sender].memberAddress == address(0), "Already a member");
+        members[msg.sender].memberAddress = msg.sender;
+        members[msg.sender].votingPower = 1; // Initial voting power (can be adjusted)
+        emit MemberJoined(msg.sender, 1);
+    }
+
+    // Expanded functionality: Voting power delegation
+    function delegateVotingPower(address delegatee) public {
+        require(members[msg.sender].memberAddress != address(0), "Not a member");
+        require(delegatee != address(0), "Invalid delegatee address");
+
+        // Implement delegation logic, adjusting the delegatee's voting power
+        // ...
+    }
+
+    // Expanded functionality: Proposal and Voting Mechanisms
+    function proposeDecision(string memory proposal) public {
+        // Implementation to store proposal details, initiate voting period, etc.
+        // ...
+    }
+
+    function voteOnProposal(uint256 proposalId, bool support) public {
+        require(members[msg.sender].memberAddress != address(0), "Not a member");
+        // Implementation to record vote based on member's voting power
+        // ...
+    }
+
+    function finalizeDecision(uint256 proposalId) public {
+        // Implementation to determine and execute decision based on votes
+        // ...
+    }
+
+    // Additional considerations for refinement:
+    // - Governance Token
+    // - Reputation Systems
+    // - Fund Management
+    // ...
+
+    // Feel free to add and refine further based on your specific project requirements
+}
