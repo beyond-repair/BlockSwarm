@@ -1,58 +1,138 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
 contract BlockSwarmDAO {
-    // Member struct to store member information
-    struct Member {
-        address memberAddress;
-        uint256 votingPower;
+  // Member struct to store member information
+  struct Member {
+    address memberAddress;
+    uint256 votingPower;
+    uint256 lastVoteTime; // Timestamp of last vote
+    address delegatedTo; // Address voting power is delegated to (if any)
+  }
+
+  // Mapping to track members and their voting power
+  mapping(address => Member) public members;
+
+  // NFT contract for voting tokens
+  address public votingTokenNFT;
+
+  // Struct to store proposal details
+  struct Proposal {
+    uint256 id;
+    address proposer;
+    string content;
+    uint256 votingEndTime;
+    bool taskCompleted;
+    uint256 votesFor;
+    uint256 votesAgainst;
+    // ... add more fields as needed
+  }
+
+  // Mapping to store proposals
+  mapping(uint256 => Proposal) public proposals;
+  uint256 public nextProposalId = 1;
+
+  // Event for Member Joining
+  event MemberJoined(address indexed memberAddress, uint256 votingPower);
+
+  // Function to allow users to join the DAO
+  function joinDAO() public {
+    require(members[msg.sender].memberAddress == address(0), "Already a member");
+    members[msg.sender].memberAddress = msg.sender;
+    members[msg.sender].votingPower = 1; // Initial voting power (can be adjusted)
+    emit MemberJoined(msg.sender, 1);
+  }
+
+  // Function to delegate voting power to another member
+  function delegateVotingPower(address delegatee) public {
+    require(members[msg.sender].memberAddress != address(0), "Not a member");
+    require(delegatee != address(0), "Invalid delegatee address");
+    members[msg.sender].delegatedTo = delegatee;
+  }
+
+  // Function to propose a decision
+  function proposeDecision(string memory proposal) public {
+    require(block.timestamp - proposals[msg.sender].votingEndTime >= 1 weeks, "Proposal cooldown in effect");
+
+    uint256 proposalId = nextProposalId++;
+    proposals[proposalId] = Proposal(proposalId, msg.sender, proposal, block.timestamp + 12 hours, false, 0, 0);
+    // ... (emit event, etc.)
+  }
+
+  // Function to vote on a proposal
+  function voteOnProposal(uint256 proposalId, bool support) public {
+    require(block.timestamp < proposals[proposalId].votingEndTime, "Voting period has ended");
+    require(IERC721(votingTokenNFT).ownerOf(msg.sender) == msg.sender, "Must own a voting token");
+    require(!hasVotedOnProposal(proposalId, msg.sender), "Already voted on this proposal");
+
+    // Lock the voting token
+    IERC721(votingTokenNFT).approve(address(this), msg.sender);
+
+    // Record vote (considering delegation if applicable)
+    if (support) {
+      proposals[proposalId].votesFor++;
+    } else {
+      proposals[proposalId].votesAgainst++;
+    }
+    members[msg.sender].lastVoteTime = block.timestamp;
+  }
+
+  // Function to finalize a decision (placeholder)
+  function finalizeDecision(uint256 proposalId) public {
+    require(proposals[proposalId].votingEndTime < block.timestamp, "Voting period has not ended");
+    require(proposals[proposalId].taskCompleted, "Task not yet completed");
+
+    // ... (calculate results, execute decision, etc.)
+  }
+
+  // Function for AI agents to signal task completion (placeholder)
+  function signalTaskCompletion(uint256 proposalId) public {
+    require(authorizedAIAgent(msg.sender), "Not an authorized AI agent");
+    proposals[proposalId].taskCompleted = true;
+  }
+
+  // Helper function to check if a member has already voted on a proposal
+  function hasVotedOnProposal(uint256 proposalId, address voter) private view returns (bool) {
+    // Check for direct vote or delegated vote
+    address effectiveVoter = voter;
+    while (members[effectiveVoter].delegatedTo != address(0)) {
+      effectiveVoter = members[effectiveVoter].delegatedTo;
     }
 
-    // Mapping to track members and their voting power
-    mapping(address => Member) public members;
+    // Check if the effective voter has already voted on this proposal
+    return proposals[proposalId].votesFor > 0 && proposals[proposalId].votesFor <= nextProposalId &&
+      (
+        proposals[proposalId].votesFor <= nextProposalId &&
+        members[effectiveVoter].lastVoteTime >= proposals[proposalId].votingEndTime ||
+        proposals[proposalId].votesFor > nextProposalId &&
+        members[effectiveVoter].lastVoteTime >= proposals[proposalId].votingEndTime - nextProposalId
+      );
+  }
 
-    // Event to notify when a new member joins the DAO
-    event MemberJoined(address indexed memberAddress, uint256 votingPower);
+  // ... (additional functions for NFT minting, security, auditing, etc.)
 
-    // Function to allow users to join the DAO
-    function joinDAO() public {
-        require(members[msg.sender].memberAddress == address(0), "Already a member");
-        members[msg.sender].memberAddress = msg.sender;
-        members[msg.sender].votingPower = 1; // Initial voting power (can be adjusted)
-        emit MemberJoined(msg.sender, 1);
-    }
+  // Function to determine if an address is an authorized AI agent (placeholder)
+  function authorizedAIAgent(address agent) private view returns (bool) {
+    // ... (implement logic to check for authorized AI agents)
+    return false; // Replace with actual authorization check
+  }
 
-    // Expanded functionality: Voting power delegation
-    function delegateVotingPower(address delegatee) public {
-        require(members[msg.sender].memberAddress != address(0), "Not a member");
-        require(delegatee != address(0), "Invalid delegatee address");
+  // Function to handle NFT minting for voting tokens (placeholder)
+  function mintVotingToken(address recipient) public {
+    // ... (implement NFT minting logic, ensuring one token per wallet)
+  }
 
-        // Implement delegation logic, adjusting the delegatee's voting power
-        // ...
-    }
+  // Function to execute a finalized decision (placeholder)
+  function executeDecision(uint256 proposalId) public {
+    // ... (implement decision execution logic)
+  }
 
-    // Expanded functionality: Proposal and Voting Mechanisms
-    function proposeDecision(string memory proposal) public {
-        // Implementation to store proposal details, initiate voting period, etc.
-        // ...
-    }
+  // Function to perform the monthly audit (placeholder)
+  function conductAudit() public {
+    // ... (implement audit logic to detect multiple wallet addresses)
+  }
 
-    function voteOnProposal(uint256 proposalId, bool support) public {
-        require(members[msg.sender].memberAddress != address(0), "Not a member");
-        // Implementation to record vote based on member's voting power
-        // ...
-    }
-
-    function finalizeDecision(uint256 proposalId) public {
-        // Implementation to determine and execute decision based on votes
-        // ...
-    }
-
-    // Additional considerations for refinement:
-    // - Governance Token
-    // - Reputation Systems
-    // - Fund Management
-    // ...
-
-    // Feel free to add and refine further based on your specific project requirements
+  // ... (other functions as needed, e.g., for governance token integration, security measures)
 }
