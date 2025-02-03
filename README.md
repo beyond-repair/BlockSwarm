@@ -1,67 +1,207 @@
-# Roadmap: BlockSwarm Intelligence Prototype Framework
+BlockSwarm DAO Framework
 
-## 1. Smart Contracts Development
-### Objective:
-Develop and deploy essential smart contracts on Avalanche Testnet using Truffle Suite and OpenZeppelin templates.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Solidity Version](https://img.shields.io/badge/Solidity-0.8.20-blue)](https://docs.soliditylang.org)
+[![Chainlink Integration](https://img.shields.io/badge/Powered%20By-Chainlink-blueviolet)](https://chain.link)
 
-### Tasks:
-- Set up Truffle project and configure for Avalanche Testnet.
-- Develop Token Contract for governance using OpenZeppelin templates.
-- Implement a simplified DAO Contract with member management and basic voting mechanisms.
-- Consider additional contracts like Agent Registry and Task Management (if needed).
-- Deploy contracts on Avalanche Testnet for initial testing.
+A decentralized autonomous organization framework combining physical NFC-based voting with AI-powered proposal execution.
 
-## 2. AI Agent Framework Integration
-### Objective:
-Integrate the ChatDev framework with smart contracts to simulate multi-agent systems aligned with DAO principles.
+![BlockSwarm Architecture Diagram](docs/architecture.png)
 
-### Tasks:
-- Define clear and achievable goals for AI agents, starting with simple rules.
-- Utilize ChatDev's visualization tools to observe and debug agent behavior.
-- Establish initial agent roles and interactions.
-- Gradually increase complexity in agent behaviors as needed.
+## Features
 
-## 3. Integration and Communication Setup
-### Objective:
-Establish a secure and reliable connection between on-chain DAO decisions and off-chain ChatDev simulation using Chainlink oracles.
+- 🛡️ **Soulbound NFC NFTs** for 1-person-1-vote governance
+- 🤖 **AI Agents** for automated proposal execution
+- ⛓️ **Hybrid On/Off-Chain** voting mechanisms
+- 🔒 **Time-locked Execution** with cooldown periods
+- 📊 **Real-time Governance Dashboard**
 
-### Tasks:
-- Set up Chainlink oracles for data transfer.
-- Test thoroughly to ensure data integrity between oracles and ChatDev.
-- Implement logging and monitoring mechanisms to track communication events.
+## Repository Structure
 
-## 4. User Interface Development
-### Objective:
-Develop a minimal and user-friendly interface for users to interact with the DAO and observe basic agent behavior.
+```
+BlockSwarm-DAO/
+├── contracts/
+│   ├── GovernanceNFT.sol           # Soulbound NFC voting token
+│   ├── DAOGovernor.sol            # Governance core logic
+│   ├── AIExecutor.sol            # Secured AI execution module
+│   └── interfaces/                # Contract interfaces
+│       └── IChainlinkOracle.sol
+├── agents/
+│   ├── core/                      # AI agent framework
+│   │   ├── agent.py              # Main agent class
+│   │   └── nlp_processor.py      # Proposal parser
+│   ├── tasks/                    # Predefined agent tasks
+│   │   ├── proposal_executor.py
+│   │   └── voting_analyzer.py
+│   └── config/                   # Agent configurations
+│       └── permissions.yaml
+├── frontend/
+│   ├── public/                   # Static assets
+│   └── src/
+│       ├── components/           # React components
+│       │   ├── NFCDashboard.jsx
+│       │   └── ProposalCreator.jsx
+│       ├── contracts/            # ABIs and addresses
+│       └── services/             # Web3 and AI services
+├── scripts/
+│   ├── deployment/               # Deployment scripts
+│   │   ├── deploy_nft.js
+│   │   └── deploy_dao.js
+│   └── oracle/                   # Chainlink integration
+├── tests/
+│   ├── smart_contracts/          # Solidity tests
+│   └── agent/                    # Python agent tests
+├── docs/
+│   ├── ARCHITECTURE.md           # System design
+│   └── DEPLOYMENT_GUIDE.md       # Setup instructions
+├── .env.example                  # Environment template
+├── hardhat.config.js             # Hardhat configuration
+├── package.json                  # Node dependencies
+├── requirements.txt              # Python dependencies
+└── LICENSE
+```
 
-### Tasks:
-- Create a basic user interface within ChatDev to receive data from oracles.
-- Prioritize essential functionalities such as member management and voting.
+## Quick Start
 
-## 5. Testing and Refinement
-### Objective:
-Iteratively test and refine the system, focusing on improving communication, decision-making, and agent behavior.
+### Prerequisites
+- Node.js v18+
+- Python 3.10+
+- Foundry / Hardhat
+- NFC Development Kit (NTAG424 DNA)
 
-### Tasks:
-- Conduct initial testing of individual components.
-- Gather feedback from users and stakeholders to identify improvements.
-- Implement necessary refinements based on feedback.
-- Repeat testing and refinement cycles iteratively.
+### Installation
 
-## 6. Documentation and GitHub Repository
-### Objective:
-Document the entire development process comprehensively and create a GitHub repository for open collaboration.
+1. Clone repository:
+```bash
+git clone https://github.com/your-org/blockswarm-dao.git
+cd blockswarm-dao
+```
 
-### Tasks:
-- Maintain clear and comprehensive documentation for smart contracts, AI agent framework, and integration processes.
-- Create a GitHub repository with clear instructions for deployment and usage.
-- Encourage community involvement and contributions.
+2. Install dependencies:
+```bash
+# Node.js
+npm install
 
-## 7. Additional Considerations
-### Objective:
-Address additional considerations like security, scalability, and exploration of simulation tools.
+# Python
+pip install -r requirements.txt
+```
 
-### Tasks:
-- Prioritize security testing and audits for smart contracts.
-- Explore simulation tools to model agent behavior and system dynamics.
-- Plan for scalability to accommodate larger agent swarms and complex tasks.
+3. Configure environment:
+```bash
+cp .env.example .env
+# Fill in your values
+```
+
+### Deployment
+
+1. Deploy NFC NFT contract:
+```bash
+npx hardhat run scripts/deployment/deploy_nft.js --network sepolia
+```
+
+2. Deploy DAO Governor:
+```bash
+npx hardhat run scripts/deployment/deploy_dao.js --network sepolia
+```
+
+3. Start AI Agent:
+```bash
+python -m agents.core.agent
+```
+
+## Usage
+
+### Mint NFC NFT
+```javascript
+// From admin account
+await nftContract.mintWithNFC(
+  userAddress,
+  nfcHash,
+  signature
+);
+```
+
+### Create Proposal
+```javascript
+// From frontend
+const proposalTx = await daoContract.propose(
+  "Transfer 1 ETH to Treasury",
+  "0x...targetAddress",
+  calldata
+);
+```
+
+### Vote with NFC
+```javascript
+// Requires WebNFC browser API
+const voteTx = await daoContract.castVote(
+  proposalId,
+  true, // Support
+  nfcSignature
+);
+```
+
+### Monitor AI Execution
+```python
+# AI Agent logs
+[INFO] Received Proposal #42: Transfer funds
+[DEBUG] Forming action plan...
+[SUCCESS] Executed proposal 42 at 0x...txHash
+```
+
+## Tech Stack
+
+- **Smart Contracts**: Solidity 0.8.20, OpenZeppelin
+- **Frontend**: React, ethers.js, WebNFC
+- **AI Agents**: Python, Transformers, Web3.py
+- **Oracles**: Chainlink
+- **Infrastructure**: Hardhat, IPFS, Foundry
+
+## Documentation
+
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Smart Contract API](docs/SMART_CONTRACTS.md)
+- [Agent Framework Guide](docs/AGENT_FRAMEWORK.md)
+- [Security Practices](docs/SECURITY.md)
+
+## Contributing
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/new-feature`
+3. Commit changes: `git commit -m 'Add new feature'`
+4. Push to branch: `git push origin feature/new-feature`
+5. Submit pull request
+
+## License
+
+MIT License - See [LICENSE](LICENSE) for details
+
+## Disclaimer
+
+**This is experimental software** - Use at your own risk. Always audit contracts before deploying to mainnet.
+
+---
+
+## Visual Guide
+
+### Voting Workflow
+```mermaid
+sequenceDiagram
+    User->>NFC Reader: Tap NFC Tag
+    NFC Reader->>Frontend: Verify Signature
+    Frontend->>DAO Contract: castVote()
+    DAO Contract->>Blockchain: Store Vote
+    DAO Contract->>AI Agent: ProposalApproved Event
+    AI Agent->>Executor: Schedule Execution
+    Executor->>Blockchain: Execute After Cooldown
+```
+
+### Security Model
+![Security Layers](docs/security_layers.png)
+
+---
+
+**Need Help?**  
+Open an issue or join our [Discord Server](https://discord.gg/blockswarm)
+
+---
