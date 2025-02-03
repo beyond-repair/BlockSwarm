@@ -1,0 +1,32 @@
+```javascript
+const hre = require("hardhat");
+
+async function main() {
+    const [deployer] = await hre.ethers.getSigners();
+    
+    // Deploy NFT
+    const NFT = await hre.ethers.getContractFactory("GovernanceNFT");
+    const nft = await NFT.deploy();
+    await nft.deployed();
+
+    // Deploy DAO
+    const DAO = await hre.ethers.getContractFactory("DAOGovernor");
+    const dao = await DAO.deploy(nft.address, "ORACLE_ADDRESS");
+    await dao.deployed();
+
+    // Deploy Treasury
+    const owners = [deployer.address, dao.address];
+    const Treasury = await hre.ethers.getContractFactory("DAOTreasury");
+    const treasury = await Treasury.deploy(owners, 2);
+    await treasury.deployed();
+
+    console.log("NFT deployed to:", nft.address);
+    console.log("DAO deployed to:", dao.address);
+    console.log("Treasury deployed to:", treasury.address);
+}
+
+main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+});
+```
