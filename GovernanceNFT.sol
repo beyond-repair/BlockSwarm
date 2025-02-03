@@ -3,25 +3,48 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract GovernanceNFT is ERC721 {
-    address public dao;
-    uint256 public tokenCount;
-    mapping(bytes32 => bool) public nfcUsed;
+    using ECDSA for bytes32;
+
+    struct VoteLock {
+        uint256 proposalId;
+        uint256 unlockTime;
+    }
+
+    uint256 public tokenCounter;
+    mapping(bytes32 => bool) public usedNFCIds;
+    mapping(address => VoteLock) public lockedTokens;
     mapping(address => bytes32) public nfcRegistry;
+    mapping(address => uint256) public fraudCount;
 
-    constructor() ERC721("BlockSwarmID", "BSID") {
-        dao = msg.sender;
-    }
+    event FraudDetected(address indexed user, bytes32 nfcHash);
 
-    function mintWithNFC(address to, bytes32 nfcHash) external {
-        require(!nfcUsed[nfcHash], "NFC already registered");
-        nfcUsed[nfcHash] = true;
+    constructor() ERC721("BlockSwarmID", "BSID") {}
+
+    function mintWithNFC(address to, bytes32 nfcHash, bytes calldata sig) external {
+        require(!usedNFCIds[nfcHash], "NFC already registered");
+        require(verifyNFCSignature(nfcHash, sig), "Invalid NFC signature");
+        
+        usedNFCIds[nfcHash] = true;
         nfcRegistry[to] = nfcHash;
-        _safeMint(to, tokenCount++);
+        _safeMint(to, tokenCounter++);
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256) internal pure override {
-        require(from == address(0) || to == address(0), "Soulbound: Non-transferable");
+    function verifyNFCSignature(bytes32 hash, bytes memory sig) public pure returns (bool) {
+        return hash.recover(sig) == msg.sender;
+    }
+
+    function reportFraud(address user, bytes32 nfcHash) external {
+        require(nfcRegistry[user] == nfcHash, "Invalid fraud report");
+        fraudCount[user]++;
+        emit FraudDetected(user, nfcHash);
+    }
+
+    function slashUser(address user) external {
+        require(fraudCount[user] >= 3, "Insufficient fraud reports");
+        _burn(tokenOfOwnerByIndex(user, 0));
     }
 }
+```
