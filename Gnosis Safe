@@ -1,0 +1,23 @@
+```solidity
+import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
+
+contract DAOTreasury is GnosisSafe {
+    address public dao;
+
+    constructor(address[] memory _owners, uint256 _threshold) 
+        GnosisSafe(_owners, _threshold) 
+    {
+        dao = msg.sender;
+    }
+
+    modifier onlyDAO() {
+        require(msg.sender == dao, "Unauthorized");
+        _;
+    }
+
+    function executeProposal(uint256 proposalId, address target, bytes calldata data) external onlyDAO {
+        require(isOwner(msg.sender), "Not an owner");
+        execute(target, 0, data, Enum.Operation.Call);
+    }
+}
+```
