@@ -1,0 +1,28 @@
+```javascript
+const { expect } = require("chai");
+
+describe("DAOGovernor", () => {
+    let dao, nft, owner, addr1;
+
+    beforeEach(async () => {
+        [owner, addr1] = await ethers.getSigners();
+        const NFT = await ethers.getContractFactory("GovernanceNFT");
+        nft = await NFT.deploy();
+        const DAO = await ethers.getContractFactory("DAOGovernor");
+        dao = await DAO.deploy(nft.address, "ORACLE_ADDRESS");
+    });
+
+    it("Should enforce timelock", async () => {
+        await dao.propose(addr1.address, "0x1234");
+        await expect(dao.executeProposal(0))
+            .to.be.revertedWith("Timelock active");
+    });
+
+    it("Should prevent double voting", async () => {
+        await nft.mintWithNFC(addr1.address, "0x1234", "0x5678");
+        await dao.castVote(0, true, "0x1234");
+        await expect(dao.castVote(0, true, "0x1234"))
+            .to.be.revertedWith("Already voted");
+    });
+});
+```
