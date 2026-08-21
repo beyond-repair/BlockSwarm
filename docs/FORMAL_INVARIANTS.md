@@ -2,7 +2,7 @@
 
 **Blueprint:** v0.4.1  
 **Scope:** Boundary rules for the four-chain substrate.  
-**Status:** B1 documents Chain-3 advisory isolation. B2/B3 refine voting, rollback integrity, and role wiring.
+**Status:** B1 documents Chain-3 advisory isolation. B3 provides Foundry execution-boundary tests. B2 refines voting, rollback integrity, and role wiring.
 
 ---
 
@@ -41,6 +41,16 @@ It MUST NOT expose:
 - `executeAuthorized` or equivalent execution primitives
 - `triggerRevert` / rollback requests
 - KnowledgeLedger mutation that implies post-execution authority from AI roles
+
+### Verification (B3)
+
+Runtime selector probes (not source grep alone):
+
+```bash
+forge test --match-contract AIExecutorAdvisoryOnlyTest -vv
+```
+
+See [`test/AIExecutorAdvisoryOnly.t.sol`](../test/AIExecutorAdvisoryOnly.t.sol).
 
 ### Separation of concerns
 
