@@ -17,19 +17,20 @@ import "../contracts/OrchestrationEngine.sol";
 contract OneVotePerSBTTest is Test {
     DAOGovernor internal governor;
     GovernanceNFT internal sbt;
-    RevertTokenLayer internal revertLayer;
-    OrchestrationEngine internal orch;
 
     address internal governance = address(0xA11CE);
 
+    uint256 internal constant MINTER_PK = 0xM1N7; // invalid - use numeric
+    uint256 internal minterPk = 0xA01;
     uint256 internal voter1Pk = 0xA11;
     uint256 internal voter2Pk = 0xA22;
+
+    address internal minter;
     address internal voter1;
     address internal voter2;
 
-    uint256 internal proposalId;
-
     function setUp() public {
+        minter = vm.addr(minterPk);
         voter1 = vm.addr(voter1Pk);
         voter2 = vm.addr(voter2Pk);
 
@@ -44,7 +45,7 @@ contract OneVotePerSBTTest is Test {
         );
 
         RevertTokenLayer revImpl = new RevertTokenLayer();
-        revertLayer = RevertTokenLayer(
+        RevertTokenLayer revertLayer = RevertTokenLayer(
             address(
                 new ERC1967Proxy(
                     address(revImpl),
@@ -54,7 +55,7 @@ contract OneVotePerSBTTest is Test {
         );
 
         OrchestrationEngine orchImpl = new OrchestrationEngine();
-        orch = OrchestrationEngine(
+        OrchestrationEngine orch = OrchestrationEngine(
             address(
                 new ERC1967Proxy(
                     address(orchImpl),
@@ -83,57 +84,37 @@ contract OneVotePerSBTTest is Test {
             )
         );
 
-        // Mint SBTs: minter is governance; NFC hash signed by governance (existing mint rule)
-        _mintSbt(voter1, keccak256("nfc-voter1"));
-        _mintSbt(voter2, keccak256("nfc-voter2"));
-
+        bytes32 minterRole = sbt.MINTER_ROLE();
         vm.prank(governance);
-        proposalId = governor.propose(keccak256("cid"), keccak256("advisory"));
+        sbt.grantRole(minterRole, minter);
     }
 
     function _mintSbt(address to, bytes32 nfcHash) internal {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(uint256(uint160(governance)), nfcHash);
-        // governance is not a known pk — use a dedicated minter key instead
-        // Re-bind: fund mint via known key granted MINTER_ROLE
-    }
-
-    /// @dev Use known private keys for both mint signature subject and voter.
-    function _setupMinterAndMint(address to, uint256 toPk, bytes32 nfcHash) internal {
-        // Grant MINTER to a known address we control
-        uint256 minterPk = 0xM1;
-        address minter = vm.addr(minterPk);
-
-        vm.startPrank(governance);
-        sbt.grantRole(sbt.MINTER_ROLE(), minter);
-        vm.stopPrank();
-
-        // mintWithNFC: recover(nfcHash, sig) == msg.sender (minter)
+        // mintWithNFC requires recover(nfcHash, sig) == msg.sender (minter)
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(minterPk, nfcHash);
         bytes memory sig = abi.encodePacked(r, s, v);
-
         vm.prank(minter);
         sbt.mintWithNFC(to, nfcHash, sig, bytes32(0));
-
-        // Silence unused warning for toPk in this helper when only minting
-        toPk;
     }
 
-    function _nfcProof(uint256 voterPk, bytes32 nfcHash) internal pure returns (bytes memory) {
+    function _proof(uint256 voterPk, bytes32 nfcHash) internal pure returns (bytes memory) {
+        // castVote: recover(nfcRegistry[voter], proof) == voter
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(voterPk, nfcHash);
         return abi.encodePacked(r, s, v);
     }
 
-    function test_firstVote_countsOnce() public {
-        bytes32 nfc1 = keccak256("nfc-v1");
-        _setupMinterAndMint(voter1, voter1Pk, nfc1);
-
-        // Fresh proposal after mint
+    function _propose() internal returns (uint256 pid) {
         vm.prank(governance);
-        uint256 pid = governor.propose(keccak256("c2"), keccak256("a2"));
+        pid = governor.propose(keccak256("cid"), keccak256("adv"));
+    }
 
-        bytes memory proof = _nfcProof(voter1Pk, nfc1);
+    function test_firstVote_countsOnce() public {
+        bytes32 nfc = keccak256("nfc-1");
+        _mintSbt(voter1, nfc);
+        uint256 pid = _propose();
+
         vm.prank(voter1);
-        governor.castVote(pid, true, proof);
+        governor.castVote(pid, true, _proof(voter1Pk, nfc));
 
         (,,,,, uint256 forVotes, uint256 againstVotes,,) = governor.proposals(pid);
         assertEq(forVotes, 1);
@@ -142,13 +123,11 @@ contract OneVotePerSBTTest is Test {
     }
 
     function test_secondVote_revertsAlreadyVoted() public {
-        bytes32 nfc1 = keccak256("nfc-v1b");
-        _setupMinterAndMint(voter1, voter1Pk, nfc1);
+        bytes32 nfc = keccak256("nfc-2");
+        _mintSbt(voter1, nfc);
+        uint256 pid = _propose();
 
-        vm.prank(governance);
-        uint256 pid = governor.propose(keccak256("c3"), keccak256("a3"));
-
-        bytes memory proof = _nfcProof(voter1Pk, nfc1);
+        bytes memory proof = _proof(voter1Pk, nfc);
 
         vm.prank(voter1);
         governor.castVote(pid, true, proof);
@@ -165,31 +144,29 @@ contract OneVotePerSBTTest is Test {
     function test_twoHolders_eachOneVote() public {
         bytes32 nfc1 = keccak256("nfc-a");
         bytes32 nfc2 = keccak256("nfc-b");
-        _setupMinterAndMint(voter1, voter1Pk, nfc1);
-        _setupMinterAndMint(voter2, voter2Pk, nfc2);
-
-        vm.prank(governance);
-        uint256 pid = governor.propose(keccak256("c4"), keccak256("a4"));
+        _mintSbt(voter1, nfc1);
+        _mintSbt(voter2, nfc2);
+        uint256 pid = _propose();
 
         vm.prank(voter1);
-        governor.castVote(pid, true, _nfcProof(voter1Pk, nfc1));
+        governor.castVote(pid, true, _proof(voter1Pk, nfc1));
 
         vm.prank(voter2);
-        governor.castVote(pid, true, _nfcProof(voter2Pk, nfc2));
+        governor.castVote(pid, false, _proof(voter2Pk, nfc2));
 
-        (,,,,, uint256 forVotes,,,) = governor.proposals(pid);
-        assertEq(forVotes, 2);
+        (,,,,, uint256 forVotes, uint256 againstVotes,,) = governor.proposals(pid);
+        assertEq(forVotes, 1);
+        assertEq(againstVotes, 1);
         assertTrue(governor.hasVoted(pid, voter1));
         assertTrue(governor.hasVoted(pid, voter2));
     }
 
     function test_withoutSbt_cannotVote() public {
+        uint256 pid = _propose();
         address stranger = address(0xBAD);
-        vm.prank(governance);
-        uint256 pid = governor.propose(keccak256("c5"), keccak256("a5"));
 
         vm.prank(stranger);
-        vm.expectRevert(); // invalid NFC / no registry
+        vm.expectRevert();
         governor.castVote(pid, true, hex"00");
     }
 }
