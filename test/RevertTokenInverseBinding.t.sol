@@ -7,114 +7,112 @@ import "../contracts/RevertTokenLayer.sol";
 
 /**
  * @title RevertTokenInverseBindingTest
- * @notice B2 sole-surface tests: keccak256(inverseCalldata) binding.
+ * @notice B2: keccak256(inverseCalldata) must match inverseActionHash before call.
  *
- * Run:
  *   forge test --match-contract RevertTokenInverseBindingTest -vv
  */
 contract RevertTokenInverseBindingTest is Test {
     RevertTokenLayer internal layer;
-    address internal governance = address(0xA11CE);
-    address internal orchestrator = address(0xB0B);
+
+    address internal constant GOVERNANCE = address(0xA11CE);
+    address internal constant ORCHESTRATOR = address(0xB0B);
 
     function setUp() public {
-        RevertTokenLayer impl = new RevertTokenLayer();
-        layer = RevertTokenLayer(
-            address(
-                new ERC1967Proxy(
-                    address(impl),
-                    abi.encodeWithSelector(RevertTokenLayer.initialize.selector, governance)
-                )
-            )
-        );
+        RevertTokenLayer implementation = new RevertTokenLayer();
+        bytes memory initData =
+            abi.encodeWithSelector(RevertTokenLayer.initialize.selector, GOVERNANCE);
 
-        vm.startPrank(governance);
-        layer.grantRole(layer.ORCHESTRATOR_ROLE(), orchestrator);
-        vm.stopPrank();
+        layer = RevertTokenLayer(address(new ERC1967Proxy(address(implementation), initData)));
+
+        vm.prank(GOVERNANCE);
+        layer.grantRole(layer.ORCHESTRATOR_ROLE(), ORCHESTRATOR);
     }
 
-    function _mintWithInverseHash(bytes32 inverseHash, bytes32 dag) internal returns (uint256 tokenId) {
-        vm.prank(orchestrator);
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
+
+    function _viewTokenCalldata(uint256 tokenId) internal pure returns (bytes memory) {
+        return abi.encodeWithSelector(RevertTokenLayer.getRevertToken.selector, tokenId);
+    }
+
+    function _mint(bytes32 inverseHash, bytes32 dag) internal returns (uint256 tokenId) {
+        vm.prank(ORCHESTRATOR);
         tokenId = layer.mintRevertToken(
             bytes32(uint256(1)),
             bytes32(uint256(2)),
             bytes32(uint256(3)),
             dag,
             inverseHash,
-            1
+            /* proposalId */ 1
         );
     }
 
+    // -----------------------------------------------------------------------
+    // Cases
+    // -----------------------------------------------------------------------
+
     function test_matchingCalldata_allowsRollback() public {
-        bytes memory inverseCalldata =
-            abi.encodeWithSelector(RevertTokenLayer.getRevertToken.selector, uint256(1));
+        bytes memory inverseCalldata = _viewTokenCalldata(1);
         bytes32 invHash = keccak256(inverseCalldata);
+        uint256 tokenId = _mint(invHash, keccak256("dag-match"));
 
-        uint256 tokenId = _mintWithInverseHash(invHash, keccak256("dag-match"));
-
-        vm.prank(governance);
+        vm.prank(GOVERNANCE);
         layer.requestRollback(tokenId, inverseCalldata);
 
-        RevertTokenLayer.RevertToken memory rt = layer.getRevertToken(tokenId);
-        assertEq(rt.inverseActionHash, invHash);
+        assertEq(layer.getRevertToken(tokenId).inverseActionHash, invHash);
     }
 
     function test_mismatchedCalldata_reverts() public {
-        bytes memory correct =
-            abi.encodeWithSelector(RevertTokenLayer.getRevertToken.selector, uint256(1));
-        bytes32 invHash = keccak256(correct);
+        bytes memory correct = _viewTokenCalldata(1);
+        uint256 tokenId = _mint(keccak256(correct), keccak256("dag-mismatch"));
 
-        uint256 tokenId = _mintWithInverseHash(invHash, keccak256("dag-mismatch"));
+        bytes memory wrong = _viewTokenCalldata(999);
+        assertTrue(keccak256(wrong) != keccak256(correct));
 
-        bytes memory wrong =
-            abi.encodeWithSelector(RevertTokenLayer.getRevertToken.selector, uint256(999));
-        assertTrue(keccak256(wrong) != invHash);
-
-        vm.prank(governance);
+        vm.prank(GOVERNANCE);
         vm.expectRevert(bytes("Inverse calldata hash mismatch"));
         layer.requestRollback(tokenId, wrong);
     }
 
     function test_hashIsOverExactSuppliedBytes() public {
-        bytes memory a = hex"deadbeef";
-        bytes memory b = hex"deadbeef00";
-        assertTrue(keccak256(a) != keccak256(b));
+        bytes memory exact = hex"deadbeef";
+        bytes memory extended = hex"deadbeef00";
+        assertTrue(keccak256(exact) != keccak256(extended));
 
-        uint256 tokenId = _mintWithInverseHash(keccak256(a), keccak256("dag-exact"));
+        uint256 tokenId = _mint(keccak256(exact), keccak256("dag-exact"));
 
-        vm.prank(governance);
+        vm.prank(GOVERNANCE);
         vm.expectRevert(bytes("Inverse calldata hash mismatch"));
-        layer.requestRollback(tokenId, b);
+        layer.requestRollback(tokenId, extended);
 
-        vm.prank(governance);
+        // Hash matches but no function exists → fails after the binding check
+        vm.prank(GOVERNANCE);
         vm.expectRevert(bytes("Inverse/compensation failed"));
-        layer.requestRollback(tokenId, a);
+        layer.requestRollback(tokenId, exact);
     }
 
     function test_checkOccursBeforeCall_mismatchLeavesNoSideEffect() public {
-        bytes memory correct =
-            abi.encodeWithSelector(RevertTokenLayer.getRevertToken.selector, uint256(1));
-        uint256 tokenId = _mintWithInverseHash(keccak256(correct), keccak256("dag-order"));
+        bytes memory correct = _viewTokenCalldata(1);
+        uint256 tokenId = _mint(keccak256(correct), keccak256("dag-order"));
 
-        bytes memory wrong =
-            abi.encodeWithSelector(RevertTokenLayer.getRevertToken.selector, uint256(1));
+        bytes memory wrong = _viewTokenCalldata(1);
         wrong[wrong.length - 1] = 0x02;
 
-        vm.prank(governance);
+        vm.prank(GOVERNANCE);
         vm.expectRevert(bytes("Inverse calldata hash mismatch"));
         layer.requestRollback(tokenId, wrong);
 
-        RevertTokenLayer.RevertToken memory rt = layer.getRevertToken(tokenId);
-        assertEq(rt.inverseActionHash, keccak256(correct));
-        assertTrue(rt.timestamp != 0);
+        RevertTokenLayer.RevertToken memory token = layer.getRevertToken(tokenId);
+        assertEq(token.inverseActionHash, keccak256(correct));
+        assertTrue(token.timestamp != 0);
     }
 
     function test_emptyCalldata_onlyIfPrecommitted() public {
         bytes memory empty = "";
-        bytes32 h = keccak256(empty);
-        uint256 tokenId = _mintWithInverseHash(h, keccak256("dag-empty"));
+        uint256 tokenId = _mint(keccak256(empty), keccak256("dag-empty"));
 
-        vm.prank(governance);
+        vm.prank(GOVERNANCE);
         vm.expectRevert(bytes("Inverse/compensation failed"));
         layer.requestRollback(tokenId, empty);
     }
