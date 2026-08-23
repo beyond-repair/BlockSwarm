@@ -1,15 +1,11 @@
-# Legacy sketches (quarantined)
+# Legacy (quarantine)
 
-These files are **historical / non-canonical**. They predate the UUPS `contracts/` package and must not be used as deploy targets.
+Historical sketches and non-canonical root files.
 
-Canonical Chain-3 surface: [`contracts/AIExecutor.sol`](../contracts/AIExecutor.sol) (advisory-only per Invariant 4.2).
+**Do not deploy from this directory.**
 
-| Legacy path | Notes |
-|-------------|--------|
-| `AIExecutor.sol` (root) | Unrestricted `target.call` — **unsafe**; superseded |
-| `DAOGovernor.sol` (root) | Early non-upgradeable sketch |
-| `GovernanceNFT.sol` (root) | Early sketch |
-| `BlockSwarmDAO` | Extensionless draft |
-| `Deployment Script`, `Gnosis Safe`, `Tests` | Informal notes / fragments |
+Canonical implementation: [`../contracts/`](../contracts/)
 
-See [`docs/FORMAL_INVARIANTS.md`](../docs/FORMAL_INVARIANTS.md).
+Canonical deploy: [`../scripts/deployment/deploy_sagf.js`](../scripts/deployment/deploy_sagf.js) and [`../script/DeploySAGF.s.sol`](../script/DeploySAGF.s.sol)
+
+Files here may include older DAO notes, deployment prose, and root-level experiments superseded by the UUPS `contracts/` package (B1–B2b-3).
