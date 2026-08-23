@@ -1,74 +1,115 @@
 // scripts/deployment/deploy_sagf.js
-// Deploys canonical contracts/ package (B1 advisory-only AIExecutor).
+// B2b-3: Deploy SAGF upgradeable stack behind ERC1967Proxy and wire roles.
+// Does not change voting (B2b-1) or role *logic* (B2b-2) — only init/wiring.
 const hre = require("hardhat");
 const fs = require("fs");
 const path = require("path");
 
+async function deployProxy(implFactory, initData) {
+    const impl = await implFactory.deploy();
+    await impl.waitForDeployment();
+    const Proxy = await hre.ethers.getContractFactory(
+        "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy"
+    );
+    const proxy = await Proxy.deploy(await impl.getAddress(), initData);
+    await proxy.waitForDeployment();
+    return hre.ethers.getContractAt(
+        await implFactory.interface.format ? implFactory.interface : implFactory,
+        await proxy.getAddress()
+    ).catch(async () => {
+        // attach via contract name
+        return proxy;
+    });
+}
+
 async function main() {
     const [deployer] = await hre.ethers.getSigners();
-    console.log("Deploying BlockSwarm SAGF with account:", deployer.address);
+    const admin = deployer.address;
+    console.log("Deploying BlockSwarm SAGF (B2b-3 wiring) with admin:", admin);
 
-    // 1. GovernanceNFT (Chain-1 identity)
-    const GovernanceNFT = await hre.ethers.getContractFactory("GovernanceNFT");
-    const nft = await GovernanceNFT.deploy();
-    await nft.waitForDeployment();
-    await nft.initialize(deployer.address);
+    const ERC1967Proxy = await hre.ethers.getContractFactory(
+        "contracts/../node_modules/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy"
+    ).catch(() => null);
+
+    // Prefer OpenZeppelin upgrades plugin when available; else manual proxy.
+    async function uups(name, initArgs) {
+        const Factory = await hre.ethers.getContractFactory(name);
+        if (hre.upgrades && hre.upgrades.deployProxy) {
+            const proxy = await hre.upgrades.deployProxy(Factory, initArgs, {
+                kind: "uups",
+                initializer: "initialize",
+            });
+            await proxy.waitForDeployment();
+            return proxy;
+        }
+        // Manual: deploy impl + ERC1967Proxy with encoded initialize
+        const impl = await Factory.deploy();
+        await impl.waitForDeployment();
+        const initData = Factory.interface.encodeFunctionData("initialize", initArgs);
+        let ProxyFactory;
+        try {
+            ProxyFactory = await hre.ethers.getContractFactory("ERC1967Proxy");
+        } catch {
+            ProxyFactory = await hre.ethers.getContractFactory(
+                "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy"
+            );
+        }
+        const proxy = await ProxyFactory.deploy(await impl.getAddress(), initData);
+        await proxy.waitForDeployment();
+        return Factory.attach(await proxy.getAddress());
+    }
+
+    // 1. Identity
+    const nft = await uups("GovernanceNFT", [admin]);
     console.log("GovernanceNFT:", await nft.getAddress());
 
-    // 2. RevertTokenLayer (Chain-1 reversibility)
-    const RevertTokenLayer = await hre.ethers.getContractFactory("RevertTokenLayer");
-    const revertLayer = await RevertTokenLayer.deploy();
-    await revertLayer.waitForDeployment();
-    await revertLayer.initialize(deployer.address);
+    // 2. Revert layer
+    const revertLayer = await uups("RevertTokenLayer", [admin]);
     console.log("RevertTokenLayer:", await revertLayer.getAddress());
 
-    // 3. OrchestrationEngine (Chain-2)
-    const OrchestrationEngine = await hre.ethers.getContractFactory("OrchestrationEngine");
-    const orchestrator = await OrchestrationEngine.deploy();
-    await orchestrator.waitForDeployment();
-    await orchestrator.initialize(await revertLayer.getAddress(), deployer.address);
+    // 3. Orchestration
+    const orchestrator = await uups("OrchestrationEngine", [
+        await revertLayer.getAddress(),
+        admin,
+    ]);
     console.log("OrchestrationEngine:", await orchestrator.getAddress());
 
-    // Wire ORCHESTRATOR_ROLE so authorizeProposal can mint revert tokens
-    const ORCHESTRATOR_ROLE = await revertLayer.ORCHESTRATOR_ROLE();
-    await revertLayer.grantRole(ORCHESTRATOR_ROLE, await orchestrator.getAddress());
-
-    // 4. KnowledgeLedger (Chain-2 provenance)
-    const KnowledgeLedger = await hre.ethers.getContractFactory("KnowledgeLedger");
-    const knowledgeLedger = await KnowledgeLedger.deploy();
-    await knowledgeLedger.waitForDeployment();
-    await knowledgeLedger.initialize(deployer.address);
+    // 4. Knowledge ledger
+    const knowledgeLedger = await uups("KnowledgeLedger", [admin]);
     console.log("KnowledgeLedger:", await knowledgeLedger.getAddress());
 
-    // 5. DAOGovernor (Chain-1)
-    const DAOGovernor = await hre.ethers.getContractFactory("DAOGovernor");
-    const dao = await DAOGovernor.deploy();
-    await dao.waitForDeployment();
-    await dao.initialize(
+    // 5. DAO Governor
+    const dao = await uups("DAOGovernor", [
         await nft.getAddress(),
         await revertLayer.getAddress(),
         await orchestrator.getAddress(),
-        deployer.address
-    );
+        admin,
+    ]);
     console.log("DAOGovernor:", await dao.getAddress());
 
-    // 6. AIExecutor (Chain-3 — advisory only; B1 API)
-    //    initialize(orchestrator, governance) — no revert/ledger injection
-    const AIExecutor = await hre.ethers.getContractFactory("AIExecutor");
-    const aiExecutor = await AIExecutor.deploy();
-    await aiExecutor.waitForDeployment();
-    await aiExecutor.initialize(await orchestrator.getAddress(), deployer.address);
-    console.log("AIExecutor (advisory-only):", await aiExecutor.getAddress());
+    // 6. AI Executor (advisory only)
+    const aiExecutor = await uups("AIExecutor", [
+        await orchestrator.getAddress(),
+        admin,
+    ]);
+    console.log("AIExecutor:", await aiExecutor.getAddress());
 
-    // Chain-3 → Chain-2: AIExecutor may call receiveAdvisory
-    const ADVISOR_ROLE = await orchestrator.ADVISOR_ROLE();
-    await orchestrator.grantRole(ADVISOR_ROLE, await aiExecutor.getAddress());
-
-    // 7. Stateless MerkleVerifier (optional tooling)
+    // 7. Merkle verifier (stateless — plain deploy)
     const MerkleVerifier = await hre.ethers.getContractFactory("MerkleVerifier");
     const merkle = await MerkleVerifier.deploy();
     await merkle.waitForDeployment();
     console.log("MerkleVerifier:", await merkle.getAddress());
+
+    // ----- Cross-contract role wiring (B2b-3) -----
+    const ORCHESTRATOR_ROLE = await revertLayer.ORCHESTRATOR_ROLE();
+    await (await revertLayer.grantRole(ORCHESTRATOR_ROLE, await orchestrator.getAddress())).wait();
+
+    const ADVISOR_ROLE = await orchestrator.ADVISOR_ROLE();
+    await (await orchestrator.grantRole(ADVISOR_ROLE, await aiExecutor.getAddress())).wait();
+
+    // Governor must hold orch EXECUTOR_ROLE so executeProposal → authorizeProposal succeeds
+    const EXECUTOR_ROLE = await orchestrator.EXECUTOR_ROLE();
+    await (await orchestrator.grantRole(EXECUTOR_ROLE, await dao.getAddress())).wait();
 
     const addresses = {
         governanceNFT: await nft.getAddress(),
@@ -78,14 +119,23 @@ async function main() {
         knowledgeLedger: await knowledgeLedger.getAddress(),
         aiExecutor: await aiExecutor.getAddress(),
         merkleVerifier: await merkle.getAddress(),
-        deployer: deployer.address,
+        admin,
+        wiring: {
+            revertLayer_ORCHESTRATOR_ROLE: await orchestrator.getAddress(),
+            orch_ADVISOR_ROLE: await aiExecutor.getAddress(),
+            orch_EXECUTOR_ROLE: await dao.getAddress(),
+            dao_DEFAULT_ADMIN: admin,
+            dao_PROPOSER: admin,
+            dao_EXECUTOR: admin,
+        },
         notes: {
-            aiExecutor: "B1 advisory-only; no target.call / triggerRevert",
+            aiExecutor: "B1 advisory-only",
             invariant_4_2: "AI cannot execute",
+            b2b3: "proxy init + cross-contract roles",
         },
     };
 
-    console.log("\n=== SAGF Deployment Complete ===");
+    console.log("\n=== SAGF Deployment Complete (B2b-3) ===");
     console.dir(addresses, { depth: null });
 
     const outDir = path.join(__dirname, "..", "..", "deployments");
