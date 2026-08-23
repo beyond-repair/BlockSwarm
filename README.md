@@ -1,60 +1,86 @@
-# BlockSwarm (bksrm-chain)
+<div align="center">
 
-**Sovereign Adaptive Guardian Framework** — reversible, auditable, AI-native four-chain execution substrate.
+# BlockSwarm
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Solidity](https://img.shields.io/badge/Solidity-0.8.20-blue)](https://docs.soliditylang.org)
-[![Foundry](https://img.shields.io/badge/Testing-Foundry-informational)](https://getfoundry.sh)
-[![Release](https://img.shields.io/badge/release-v0.5.0--sagf-success)](docs/CHANGELOG.md)
-[![Governance](https://img.shields.io/badge/Governance-ADL--Governance-8b5cf6)](https://github.com/beyond-repair/ADL-Governance)
+### Sovereign Adaptive Guardian Framework (SAGF)
 
-| Field | Value |
-|-------|--------|
-| **STATUS** | ACTIVE |
-| **Governed by** | [ADL-Governance](https://github.com/beyond-repair/ADL-Governance) |
-| **Current milestone** | **B2 Complete** (B1–B2b-3 closed) |
-| **Release** | **v0.5.0-sagf** |
-| **Maturity** | **5** (production candidate — CI + tests + clean root) |
+**Reversible · Auditable · AI-native · Four-chain execution substrate**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636?style=for-the-badge&logo=solidity)](https://docs.soliditylang.org)
+[![Foundry](https://img.shields.io/badge/Foundry-tests-0ea5e9?style=for-the-badge)](https://getfoundry.sh)
+[![Milestone](https://img.shields.io/badge/B2-Complete-22c55e?style=for-the-badge)](docs/CHANGELOG.md)
+[![Governance](https://img.shields.io/badge/ADL--Governance-7c3aed?style=for-the-badge)](https://github.com/beyond-repair/ADL-Governance)
+
+**STATUS** `ACTIVE` · **Release** `v0.5.0-sagf` · **Maturity** production candidate
+
+</div>
 
 ---
 
-### Four-Chain Architecture
+## The idea
 
-| Chain | Layer | Role | Key Contracts |
-|-------|--------|------|---------------|
-| 1 | Trust & Governance | Binding authority & reversibility | GovernanceNFT, DAOGovernor, RevertTokenLayer |
-| 2 | Communication & Oracle | Semantic transport | OrchestrationEngine, KnowledgeLedger |
-| 3 | AI Cognitive | **Advisory-only** | AIExecutor |
-| 0 | Physical | Attested actuation | TEE / external |
+BlockSwarm separates **advice** from **authority**. AI can propose; only governance can bind. Rollback is cryptographically constrained. Offline attestation can feed the ledger — it cannot seize the chain.
 
-**Invariant 4.2:** Chain-3 cannot execute. See [`docs/FORMAL_INVARIANTS.md`](docs/FORMAL_INVARIANTS.md).
+### Four-chain architecture
 
-### Validation
+```text
+ Chain 1  Trust & Governance     GovernanceNFT · DAOGovernor · RevertTokenLayer
+ Chain 2  Communication          OrchestrationEngine · KnowledgeLedger
+ Chain 3  AI Cognitive           AIExecutor  ← advisory only
+ Chain 0  Physical               TEE / external actuation
+```
 
-| Track | Doc |
-|-------|-----|
-| B3b | [B3B_VALIDATION.md](docs/B3B_VALIDATION.md) |
-| B2a | [B2_INVERSE_BINDING_VALIDATION.md](docs/B2_INVERSE_BINDING_VALIDATION.md) |
-| B2b-1 | [B2B1_ONE_VOTE_VALIDATION.md](docs/B2B1_ONE_VOTE_VALIDATION.md) |
-| B2b-2 | [B2B2_ROLE_VALIDATION.md](docs/B2B2_ROLE_VALIDATION.md) |
-| B2b-3 | [B2B3_DEPLOY_VALIDATION.md](docs/B2B3_DEPLOY_VALIDATION.md) |
-| Changelog | [CHANGELOG.md](docs/CHANGELOG.md) |
+| Chain | Role | Key contracts |
+|------:|------|---------------|
+| **1** | Binding authority & reversibility | GovernanceNFT, DAOGovernor, RevertTokenLayer |
+| **2** | Semantic transport | OrchestrationEngine, KnowledgeLedger |
+| **3** | **Advisory-only** AI | AIExecutor |
+| **0** | Attested actuation | TEE / external |
+
+> **Invariant 4.2** — Chain-3 **cannot** execute.  
+> Details: [`docs/FORMAL_INVARIANTS.md`](docs/FORMAL_INVARIANTS.md)
+
+---
+
+## Validate
 
 ```bash
 forge test -vv
-# 45 tests green (local validation, 2026-08-23)
+# Target: 45 tests green
 ```
 
-### Structure
+| Track | Documentation |
+|-------|----------------|
+| B3b advisory boundary | [B3B_VALIDATION.md](docs/B3B_VALIDATION.md) |
+| B2a inverse binding | [B2_INVERSE_BINDING_VALIDATION.md](docs/B2_INVERSE_BINDING_VALIDATION.md) |
+| B2b-1 one-vote / SBT | [B2B1_ONE_VOTE_VALIDATION.md](docs/B2B1_ONE_VOTE_VALIDATION.md) |
+| B2b-2 roles | [B2B2_ROLE_VALIDATION.md](docs/B2B2_ROLE_VALIDATION.md) |
+| B2b-3 deploy | [B2B3_DEPLOY_VALIDATION.md](docs/B2B3_DEPLOY_VALIDATION.md) |
+| Changelog | [CHANGELOG.md](docs/CHANGELOG.md) |
+
+---
+
+## Repository layout
 
 ```text
 contracts/   Canonical UUPS implementations
-test/        Foundry tests
+test/        Foundry suites
 script/      Foundry deploy (DeploySAGF.s.sol)
-scripts/     Hardhat deploy helpers
-docs/        Invariants, validation, changelog
+scripts/     Hardhat helpers
+docs/        Invariants · validation · changelog
 legacy/      Quarantined sketches — do not deploy
-.github/     CI (foundry.yml)
+.github/     CI
 ```
 
-Offline control plane: [sovereign-clean-room](https://github.com/beyond-repair/sovereign-clean-room).
+Offline control plane: **[sovereign-clean-room](https://github.com/beyond-repair/sovereign-clean-room)**
+
+---
+
+<div align="center">
+
+**Atomic Dream Labs** · [ADL-Governance](https://github.com/beyond-repair/ADL-Governance)
+
+<sub>AI advises. Governance decides. Code proves the boundary.</sub>
+
+</div>
