@@ -1,0 +1,37 @@
+name: Foundry
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  FOUNDRY_PROFILE: default
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Install dependencies
+        run: |
+          mkdir -p lib
+          if [ ! -d lib/openzeppelin-contracts-upgradeable ]; then
+            git clone --depth 1 --branch v4.9.6 https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable.git lib/openzeppelin-contracts-upgradeable
+          fi
+          if [ ! -d lib/openzeppelin-contracts ]; then
+            git clone --depth 1 --branch v4.9.6 https://github.com/OpenZeppelin/openzeppelin-contracts.git lib/openzeppelin-contracts
+          fi
+          if [ ! -d lib/forge-std ]; then
+            git clone --depth 1 https://github.com/foundry-rs/forge-std.git lib/forge-std
+          fi
+
+      - name: Forge test
+        run: forge test -vv
