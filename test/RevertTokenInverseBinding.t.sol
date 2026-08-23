@@ -9,19 +9,13 @@ import "../contracts/RevertTokenLayer.sol";
  * @title RevertTokenInverseBindingTest
  * @notice B2 sole-surface tests: keccak256(inverseCalldata) binding.
  *
- * Acceptance:
- * 1. Matching hash → rollback proceeds
- * 2. Mismatched hash → reverts
- * 3. Hash is over exact supplied calldata bytes
- * 4. Check occurs before self-call
- *
  * Run:
  *   forge test --match-contract RevertTokenInverseBindingTest -vv
  */
 contract RevertTokenInverseBindingTest is Test {
     RevertTokenLayer internal layer;
     address internal governance = address(0xA11CE);
-    address internal orchestrator = address(0x0BCH);
+    address internal orchestrator = address(0xB0B);
 
     function setUp() public {
         RevertTokenLayer impl = new RevertTokenLayer();
