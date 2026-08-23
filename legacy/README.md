@@ -1,11 +1,12 @@
 # Legacy (quarantine)
 
-Historical sketches and non-canonical root files.
-
 **Do not deploy from this directory.**
 
-Canonical implementation: [`../contracts/`](../contracts/)
+Root sketches were removed in the v0.5.0-sagf cleanup. Content remains in git history under former root paths:
 
-Canonical deploy: [`../scripts/deployment/deploy_sagf.js`](../scripts/deployment/deploy_sagf.js) and [`../script/DeploySAGF.s.sol`](../script/DeploySAGF.s.sol)
+- `BlockSwarmDAO`, `Deployment Script`, `Gnosis Safe`
+- `NFCDashboard.jsx`, `Tests`, `agent.py`
+- `deploy_nft.js`, `nfcService.js`, `sweep.yaml`
 
-Files here may include older DAO notes, deployment prose, and root-level experiments superseded by the UUPS `contracts/` package (B1–B2b-3).
+Canonical code: [`../contracts/`](../contracts/)  
+Canonical deploy: [`../script/DeploySAGF.s.sol`](../script/DeploySAGF.s.sol), [`../scripts/deployment/deploy_sagf.js`](../scripts/deployment/deploy_sagf.js)
