@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../contracts/AIExecutor.sol";
 import "../contracts/OrchestrationEngine.sol";
 import "../contracts/RevertTokenLayer.sol";
@@ -10,11 +11,11 @@ import "../contracts/RevertTokenLayer.sol";
  * @title AIExecutorAdvisoryOnlyTest
  * @notice B3 execution-boundary suite for Invariant 4.2.
  *
- * Goal: demonstrate on a deployed AIExecutor that an authorized AI/advisor
- * cannot turn advisory authority into external state-changing calls,
- * governance execution, or rollback.
+ * Upgradeable implementations call _disableInitializers() in constructors;
+ * tests therefore deploy each component behind ERC1967Proxy so initialize()
+ * runs on the proxy, matching production UUPS usage.
  *
- * Run (after `forge install` of OZ + forge-std):
+ * Run:
  *   forge test --match-contract AIExecutorAdvisoryOnlyTest -vv
  */
 contract AIExecutorAdvisoryOnlyTest is Test {
@@ -27,7 +28,6 @@ contract AIExecutorAdvisoryOnlyTest is Test {
     address internal attacker = address(0xBAD);
     address internal victim = address(0xBEEF);
 
-    // Selectors that MUST NOT exist on advisory-only AIExecutor (pre-B1 attack surface)
     bytes4 internal constant SEL_EXECUTE_AUTHORIZED =
         bytes4(keccak256("executeAuthorized(uint256,address,bytes,bytes32)"));
     bytes4 internal constant SEL_TRIGGER_REVERT =
@@ -35,52 +35,65 @@ contract AIExecutorAdvisoryOnlyTest is Test {
     bytes4 internal constant SEL_LEGACY_EXECUTE =
         bytes4(keccak256("executeProposal(uint256,address,bytes)"));
 
-    function setUp() public {
-        vm.startPrank(governance);
-
-        revertLayer = new RevertTokenLayer();
-        revertLayer.initialize(governance);
-
-        orch = new OrchestrationEngine();
-        orch.initialize(address(revertLayer), governance);
-
-        // Grant orchestrator role so mint path works if exercised elsewhere
-        revertLayer.grantRole(revertLayer.ORCHESTRATOR_ROLE(), address(orch));
-
-        ai = new AIExecutor();
-        ai.initialize(address(orch), governance);
-
-        // Wire Chain-3 advisory path: AIExecutor needs ADVISOR_ROLE on OrchestrationEngine
-        orch.grantRole(orch.ADVISOR_ROLE(), address(ai));
-
-        // Register AI agent and grant it ADVISOR_ROLE on AIExecutor so it can processAdvisory
-        ai.registerAgent(aiAgent);
-        ai.grantRole(ai.ADVISOR_ROLE(), aiAgent);
-
-        vm.stopPrank();
+    function _proxy(address impl, bytes memory initData) internal returns (address) {
+        return address(new ERC1967Proxy(impl, initData));
     }
 
-    // -------------------------------------------------------------------------
-    // Positive: advisory surface works
-    // -------------------------------------------------------------------------
+    function setUp() public {
+        // Implementations
+        RevertTokenLayer revertImpl = new RevertTokenLayer();
+        OrchestrationEngine orchImpl = new OrchestrationEngine();
+        AIExecutor aiImpl = new AIExecutor();
+
+        // Proxies + initialize (production path)
+        revertLayer = RevertTokenLayer(
+            _proxy(
+                address(revertImpl),
+                abi.encodeWithSelector(RevertTokenLayer.initialize.selector, governance)
+            )
+        );
+
+        orch = OrchestrationEngine(
+            _proxy(
+                address(orchImpl),
+                abi.encodeWithSelector(
+                    OrchestrationEngine.initialize.selector,
+                    address(revertLayer),
+                    governance
+                )
+            )
+        );
+
+        vm.startPrank(governance);
+        revertLayer.grantRole(revertLayer.ORCHESTRATOR_ROLE(), address(orch));
+
+        ai = AIExecutor(
+            _proxy(
+                address(aiImpl),
+                abi.encodeWithSelector(
+                    AIExecutor.initialize.selector,
+                    address(orch),
+                    governance
+                )
+            )
+        );
+
+        // Chain-3 → Chain-2 advisory intake
+        orch.grantRole(orch.ADVISOR_ROLE(), address(ai));
+
+        ai.registerAgent(aiAgent);
+        ai.grantRole(ai.ADVISOR_ROLE(), aiAgent);
+        vm.stopPrank();
+    }
 
     function test_processAdvisory_emitsAndForwards() public {
         uint256 proposalId = 1;
         bytes32 advisoryHash = keccak256("advice-v1");
-
-        // Signature over digest expected by OrchestrationEngine.receiveAdvisory
-        // digest = keccak256(abi.encode(proposalId, advisoryHash, block.timestamp))
-        // For this unit test we use a placeholder signature; receiveAdvisory may
-        // revert on ECDSA if strict — we still assert the call path is advisory-only.
         bytes memory sig = new bytes(65);
 
         vm.prank(aiAgent);
-        // May revert on invalid signature inside OrchestrationEngine — that is OK
-        // for boundary testing; the important property is we did not perform target.call.
-        try ai.processAdvisory(proposalId, advisoryHash, sig) {
-            // success path
-        } catch {
-            // signature failure is not an execution-boundary failure
+        try ai.processAdvisory(proposalId, advisoryHash, sig) {} catch {
+            // invalid ECDSA is not an execution-boundary failure
         }
     }
 
@@ -93,10 +106,6 @@ contract AIExecutorAdvisoryOnlyTest is Test {
         assertFalse(ai.authorizedAgents(newAgent));
         vm.stopPrank();
     }
-
-    // -------------------------------------------------------------------------
-    // Negative: execution primitives are not reachable
-    // -------------------------------------------------------------------------
 
     function test_executeAuthorized_selectorReverts() public {
         bytes memory payload = abi.encodeWithSelector(
@@ -136,12 +145,9 @@ contract AIExecutorAdvisoryOnlyTest is Test {
     }
 
     function test_aiAgent_cannotArbitraryCallViaAIExecutor() public {
-        // Deploy a simple victim that flips state if called
         Victim v = new Victim();
         uint256 beforeBal = v.hits();
 
-        // Attempt low-level call patterns an AI agent might try if execution
-        // primitives still lived on AIExecutor
         bytes memory payload = abi.encodeWithSelector(
             SEL_EXECUTE_AUTHORIZED,
             uint256(99),
@@ -163,15 +169,12 @@ contract AIExecutorAdvisoryOnlyTest is Test {
     }
 
     function test_noExecutorRoleConstant() public {
-        // B1 removed EXECUTOR_ROLE from AIExecutor. Probing the constant getter
-        // via selector must fail.
         bytes4 sel = bytes4(keccak256("EXECUTOR_ROLE()"));
         (bool ok, ) = address(ai).call(abi.encodeWithSelector(sel));
         assertFalse(ok, "EXECUTOR_ROLE must not exist on advisory AIExecutor");
     }
 }
 
-/// @dev Minimal external target for call-boundary probes
 contract Victim {
     uint256 public hits;
 
