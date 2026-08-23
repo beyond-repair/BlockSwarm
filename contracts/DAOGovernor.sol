@@ -11,8 +11,12 @@ import "./OrchestrationEngine.sol";
  * @title DAOGovernor
  * @notice Chain-1 governance: proposals, SBT voting, execution under EXECUTOR_ROLE.
  *
- * B2b-1: each address that holds a soulbound token may cast at most one vote
- * per proposal (`hasVoted[proposalId][voter]`).
+ * Roles (B2b-2):
+ * - DEFAULT_ADMIN_ROLE: grant/revoke PROPOSER_ROLE and EXECUTOR_ROLE; authorize upgrades
+ * - PROPOSER_ROLE: create proposals only
+ * - EXECUTOR_ROLE: execute approved proposals only
+ *
+ * B2b-1: one vote per SBT holder per proposal (`hasVoted`).
  */
 contract DAOGovernor is UUPSUpgradeable, AccessControlUpgradeable {
     bytes32 public constant PROPOSER_ROLE = keccak256("PROPOSER_ROLE");
@@ -71,8 +75,32 @@ contract DAOGovernor is UUPSUpgradeable, AccessControlUpgradeable {
         _grantRole(EXECUTOR_ROLE, governance);
     }
 
+    // -------------------------------------------------------------------------
+    // Role administration (DEFAULT_ADMIN_ROLE only)
+    // -------------------------------------------------------------------------
+
+    function grantProposer(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _grantRole(PROPOSER_ROLE, account);
+    }
+
+    function revokeProposer(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _revokeRole(PROPOSER_ROLE, account);
+    }
+
+    function grantExecutor(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _grantRole(EXECUTOR_ROLE, account);
+    }
+
+    function revokeExecutor(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _revokeRole(EXECUTOR_ROLE, account);
+    }
+
+    // -------------------------------------------------------------------------
+    // Proposal lifecycle
+    // -------------------------------------------------------------------------
+
     /**
-     * @notice Create proposal from chain-3 advisory data (Invariant 4.2: AI does not execute).
+     * @notice Create proposal (PROPOSER_ROLE only). AI does not call this (Invariant 4.2).
      */
     function propose(bytes32 contentCID, bytes32 advisoryHash)
         external
@@ -98,8 +126,7 @@ contract DAOGovernor is UUPSUpgradeable, AccessControlUpgradeable {
 
     /**
      * @notice Cast one vote with SBT + NFC proof (Invariants 6.1, 6.2).
-     * @dev B2b-1: reverts if `msg.sender` already voted on this proposal.
-     *      Weight is binary (1) per soulbound holder — not stake-weighted.
+     * @dev No governance role required — only SBT identity. B2b-1 double-vote guard.
      */
     function castVote(uint256 proposalId, bool support, bytes calldata nfcProof) external {
         Proposal storage proposal = proposals[proposalId];
@@ -126,7 +153,7 @@ contract DAOGovernor is UUPSUpgradeable, AccessControlUpgradeable {
     }
 
     /**
-     * @notice Execute approved proposal (Chain-1 EXECUTOR_ROLE only).
+     * @notice Execute approved proposal (EXECUTOR_ROLE only).
      */
     function executeProposal(uint256 proposalId) external onlyRole(EXECUTOR_ROLE) {
         Proposal storage proposal = proposals[proposalId];
