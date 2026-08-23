@@ -1,21 +1,24 @@
 # BlockSwarm (bksrm-chain)
 
-**Sovereign Adaptive Guardian Framework** — A reversible, auditable, AI-native four-chain execution substrate.
+**Sovereign Adaptive Guardian Framework** — reversible, auditable, AI-native four-chain execution substrate.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.20-blue)](https://docs.soliditylang.org)
 [![Foundry](https://img.shields.io/badge/Testing-Foundry-informational)](https://getfoundry.sh)
+[![Release](https://img.shields.io/badge/release-v0.5.0--sagf-success)](docs/CHANGELOG.md)
 [![Governance](https://img.shields.io/badge/Governance-ADL--Governance-8b5cf6)](https://github.com/beyond-repair/ADL-Governance)
 
-**Status:** ACTIVE · **Maturity:** 4 (production candidate) · **Tracks B1–B2b-3:** CLOSED
-
-Governed by [ADL-Governance](https://github.com/beyond-repair/ADL-Governance).
+| Field | Value |
+|-------|--------|
+| **STATUS** | ACTIVE |
+| **Governed by** | [ADL-Governance](https://github.com/beyond-repair/ADL-Governance) |
+| **Current milestone** | **B2 Complete** (B1–B2b-3 closed) |
+| **Release** | **v0.5.0-sagf** |
+| **Maturity** | **5** (production candidate — CI + tests + clean root) |
 
 ---
 
-### Blueprint v0.4.1+
-
-#### Four-Chain Architecture
+### Four-Chain Architecture
 
 | Chain | Layer | Role | Key Contracts |
 |-------|--------|------|---------------|
@@ -26,7 +29,7 @@ Governed by [ADL-Governance](https://github.com/beyond-repair/ADL-Governance).
 
 **Invariant 4.2:** Chain-3 cannot execute. See [`docs/FORMAL_INVARIANTS.md`](docs/FORMAL_INVARIANTS.md).
 
-#### Validation artifacts
+### Validation
 
 | Track | Doc |
 |-------|-----|
@@ -35,20 +38,23 @@ Governed by [ADL-Governance](https://github.com/beyond-repair/ADL-Governance).
 | B2b-1 | [B2B1_ONE_VOTE_VALIDATION.md](docs/B2B1_ONE_VOTE_VALIDATION.md) |
 | B2b-2 | [B2B2_ROLE_VALIDATION.md](docs/B2B2_ROLE_VALIDATION.md) |
 | B2b-3 | [B2B3_DEPLOY_VALIDATION.md](docs/B2B3_DEPLOY_VALIDATION.md) |
+| Changelog | [CHANGELOG.md](docs/CHANGELOG.md) |
 
 ```bash
 forge test -vv
+# 45 tests green (local validation, 2026-08-23)
 ```
 
-#### Structure
+### Structure
 
 ```text
 contracts/   Canonical UUPS implementations
 test/        Foundry tests
-script/      Foundry deploy
+script/      Foundry deploy (DeploySAGF.s.sol)
 scripts/     Hardhat deploy helpers
-docs/        Invariants & validation records
+docs/        Invariants, validation, changelog
 legacy/      Quarantined sketches — do not deploy
+.github/     CI (foundry.yml)
 ```
 
 Offline control plane: [sovereign-clean-room](https://github.com/beyond-repair/sovereign-clean-room).
