@@ -24,8 +24,10 @@ contract RevertTokenInverseBindingTest is Test {
 
         layer = RevertTokenLayer(address(new ERC1967Proxy(address(implementation), initData)));
 
+        // Read role id before prank — vm.prank applies to the next call only.
+        bytes32 orchestratorRole = layer.ORCHESTRATOR_ROLE();
         vm.prank(GOVERNANCE);
-        layer.grantRole(layer.ORCHESTRATOR_ROLE(), ORCHESTRATOR);
+        layer.grantRole(orchestratorRole, ORCHESTRATOR);
     }
 
     // -----------------------------------------------------------------------
