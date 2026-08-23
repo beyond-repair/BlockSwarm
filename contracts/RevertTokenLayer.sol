@@ -14,9 +14,9 @@ contract RevertTokenLayer is UUPSUpgradeable, AccessControlUpgradeable {
     struct RevertToken {
         bytes32 preStateRoot;
         bytes32 postStateRoot;
-        bytes32 triggerProof;        // EIP-712 signed receipt from OrchestrationEngine
+        bytes32 triggerProof; // EIP-712 signed receipt from OrchestrationEngine
         bytes32 causalDAGHash;
-        bytes32 inverseActionHash;   // keccak256 of inverse() or compensation() calldata
+        bytes32 inverseActionHash; // keccak256 of inverse/compensation calldata
         uint256 timestamp;
         address authorizedBy;
         uint256 proposalId;
@@ -75,15 +75,23 @@ contract RevertTokenLayer is UUPSUpgradeable, AccessControlUpgradeable {
     }
 
     /**
-     * @notice Execute monotonic rollback (Invariant 3.2)
+     * @notice Execute monotonic rollback (Invariant 3.2).
+     * @dev B2: keccak256(inverseCalldata) MUST equal the precommitted inverseActionHash
+     *      BEFORE any self-call. Hash is over the exact supplied calldata bytes.
      */
-    function requestRollback(uint256 tokenId, bytes calldata inverseCalldata) 
-        external onlyRole(GOVERNANCE_ROLE) 
+    function requestRollback(uint256 tokenId, bytes calldata inverseCalldata)
+        external
+        onlyRole(GOVERNANCE_ROLE)
     {
         RevertToken storage rt = revertTokens[tokenId];
         require(rt.timestamp != 0, "RevertToken does not exist");
 
-        // Execute inverse or compensation action
+        // B2 inverse calldata binding — must precede call
+        require(
+            keccak256(inverseCalldata) == rt.inverseActionHash,
+            "Inverse calldata hash mismatch"
+        );
+
         (bool success, ) = address(this).call(inverseCalldata);
         require(success, "Inverse/compensation failed");
 
