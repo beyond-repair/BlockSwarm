@@ -6,83 +6,91 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "./OrchestrationEngine.sol";
 
 /**
- * @title AIExecutor (Chain-3 — Advisory Only)
- * @notice Digital Double advisory surface for BlockSwarm / SAGF.
+ * @title AIExecutor
+ * @notice Chain-3 advisory-only Digital Double surface (Invariant 4.2).
  *
- * B1 boundary (Invariant 4.2 — AI Cannot Execute):
- *   This contract MUST NOT perform arbitrary external calls, governance
- *   execution, rollback, or other binding state transitions.
- *
- *   Allowed: register agents, process advisory hashes into OrchestrationEngine.
- *   Forbidden: target.call, executeAuthorized, triggerRevert, ledger mutation
- *   that implies post-execution authority.
- *
- * Binding actuation remains on Chain-1 (DAOGovernor / governance roles) and
- * Chain-2 orchestration authorization — never on Chain-3 AI authority.
+ * Allowed: register/revoke agents, forward advisory hashes.
+ * Forbidden: target.call, governance execution, rollback, ledger actuation.
  */
 contract AIExecutor is UUPSUpgradeable, AccessControlUpgradeable {
+    // -------------------------------------------------------------------------
+    // Roles & state
+    // -------------------------------------------------------------------------
+
     bytes32 public constant ADVISOR_ROLE = keccak256("ADVISOR_ROLE");
 
     OrchestrationEngine public orchestrator;
 
-    /// @notice Multi-agent swarm registry (advisory agents only)
+    /// @notice Registered advisory agents (no execution capability).
     mapping(address => bool) public authorizedAgents;
+
+    // -------------------------------------------------------------------------
+    // Events
+    // -------------------------------------------------------------------------
 
     event AdvisoryProcessed(uint256 indexed proposalId, bytes32 advisoryHash);
     event AgentRegistered(address indexed agent);
     event AgentRevoked(address indexed agent);
 
+    // -------------------------------------------------------------------------
+    // Lifecycle
+    // -------------------------------------------------------------------------
+
     constructor() {
         _disableInitializers();
     }
 
-    function initialize(address _orchestrator, address _governance) public initializer {
+    function initialize(address orchestrator_, address governance) public initializer {
         __UUPSUpgradeable_init();
         __AccessControl_init();
 
-        orchestrator = OrchestrationEngine(_orchestrator);
+        orchestrator = OrchestrationEngine(orchestrator_);
 
-        _grantRole(DEFAULT_ADMIN_ROLE, _governance);
-        _grantRole(ADVISOR_ROLE, _governance);
+        _grantRole(DEFAULT_ADMIN_ROLE, governance);
+        _grantRole(ADVISOR_ROLE, governance);
     }
 
-    /**
-     * @notice Register AI agent under advisory consent (Chain-3 swarm).
-     * @dev Does not grant execution capability. Agent may only call processAdvisory
-     *      after also holding ADVISOR_ROLE or being registered and invoked by a role holder.
-     */
+    // -------------------------------------------------------------------------
+    // Agent registry
+    // -------------------------------------------------------------------------
+
     function registerAgent(address agent) external onlyRole(ADVISOR_ROLE) {
         require(agent != address(0), "Invalid agent");
         authorizedAgents[agent] = true;
         emit AgentRegistered(agent);
     }
 
-    /**
-     * @notice Revoke advisory agent registration.
-     */
     function revokeAgent(address agent) external onlyRole(ADVISOR_ROLE) {
         authorizedAgents[agent] = false;
         emit AgentRevoked(agent);
     }
 
+    // -------------------------------------------------------------------------
+    // Advisory path (no actuation)
+    // -------------------------------------------------------------------------
+
     /**
-     * @notice Process advisory from Digital Double (Chain-3).
-     * @dev Forwards advisory hash to OrchestrationEngine only. No external call,
-     *      no revert token mint, no knowledge-ledger mutation from this surface.
-     *
-     * Invariants: 4.2 (AI cannot execute), 5.1 (advisory provenance).
+     * @notice Forward an advisory hash to OrchestrationEngine.
+     * @dev Does not mint revert tokens, call external targets, or mutate ledgers.
      */
     function processAdvisory(
         uint256 proposalId,
         bytes32 advisoryHash,
         bytes calldata signature
     ) external onlyRole(ADVISOR_ROLE) {
-        require(authorizedAgents[msg.sender] || hasRole(ADVISOR_ROLE, msg.sender), "Unauthorized AI agent");
+        require(_isAuthorizedAdvisor(msg.sender), "Unauthorized AI agent");
 
-        // Forward advisory data only — no actuation
         orchestrator.receiveAdvisory(proposalId, advisoryHash, signature);
 
         emit AdvisoryProcessed(proposalId, advisoryHash);
+    }
+
+    // -------------------------------------------------------------------------
+    // Internal
+    // -------------------------------------------------------------------------
+
+    function _isAuthorizedAdvisor(address account) internal view returns (bool) {
+        return authorizedAgents[account] || hasRole(ADVISOR_ROLE, account);
     }
 
     function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
