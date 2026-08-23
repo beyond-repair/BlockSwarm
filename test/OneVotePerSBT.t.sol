@@ -20,7 +20,6 @@ contract OneVotePerSBTTest is Test {
 
     address internal governance = address(0xA11CE);
 
-    uint256 internal constant MINTER_PK = 0xM1N7; // invalid - use numeric
     uint256 internal minterPk = 0xA01;
     uint256 internal voter1Pk = 0xA11;
     uint256 internal voter2Pk = 0xA22;
@@ -90,7 +89,6 @@ contract OneVotePerSBTTest is Test {
     }
 
     function _mintSbt(address to, bytes32 nfcHash) internal {
-        // mintWithNFC requires recover(nfcHash, sig) == msg.sender (minter)
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(minterPk, nfcHash);
         bytes memory sig = abi.encodePacked(r, s, v);
         vm.prank(minter);
@@ -98,7 +96,6 @@ contract OneVotePerSBTTest is Test {
     }
 
     function _proof(uint256 voterPk, bytes32 nfcHash) internal pure returns (bytes memory) {
-        // castVote: recover(nfcRegistry[voter], proof) == voter
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(voterPk, nfcHash);
         return abi.encodePacked(r, s, v);
     }
