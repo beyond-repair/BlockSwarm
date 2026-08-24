@@ -1,49 +1,67 @@
 <div align="center">
 
-# ⛓️ BlockSwarm
+# ⛓️ BlockSwarm · SAGF
 
-## On-chain power where **AI cannot seize the wheel**
-
-### Sovereign Adaptive Guardian Framework (SAGF)
+### Four-chain substrate where **AI advises and cannot execute**
 
 [![MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
-[![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636?style=for-the-badge&logo=solidity)](https://docs.soliditylang.org)
-[![Foundry](https://img.shields.io/badge/45+_tests-Foundry-0ea5e9?style=for-the-badge)](https://getfoundry.sh)
+[![Foundry](https://img.shields.io/badge/Foundry-tests-0ea5e9?style=for-the-badge)](https://getfoundry.sh)
 [![B2](https://img.shields.io/badge/B2-COMPLETE-22c55e?style=for-the-badge)](docs/CHANGELOG.md)
-
-**AI proposes. Governance binds. Math polices the rollback.**
 
 </div>
 
 ---
 
-## Why builders care
+## Why it is unique
 
-Most “AI + DAO” demos let a model (or a compromised key behind a model) **do things**.
-
-BlockSwarm's rule is brutal and simple:
-
-> **Chain-3 is advisory-only. Execution authority lives elsewhere.**
-
-That's not a blog post — it's **Invariant 4.2**, tested at the contract boundary.
+Most “AI + chain” demos hand an agent a key.  
+**SAGF separates authority by construction:** Chain-3 has **no** `target.call`. Governance alone binds. Rollback must match a precommitted inverse hash.
 
 ---
 
-## Four chains. One spine.
+## Visual workflow
 
 ```text
- ① GOVERNANCE     vote · role · revert   ← only place binding power lives
- ② ORACLE         transport · knowledge
- ③ AI             advice only            ← no target.call, no seize
- ⓪ PHYSICAL       attested actuation
+                 ┌─────────────────────────────────────┐
+                 │         CHAIN 1 — GOVERNANCE          │
+                 │  SBT vote · roles · propose · execute │
+                 │  RevertTokenLayer (hash-bound undo)   │
+                 └──────────────▲────────────────────────┘
+                                │ binding only
+┌──────────────┐    ┌───────────┴───────────┐    ┌──────────────┐
+│ CHAIN 3 · AI │───►│ CHAIN 2 · ORACLE      │───►│ CHAIN 0      │
+│ AIExecutor   │    │ OrchestrationEngine   │    │ Physical /   │
+│ processAdv.  │    │ KnowledgeLedger       │    │ TEE agents   │
+│ advice ONLY  │    │ Merkle leaves         │    │ attested act │
+└──────────────┘    └───────────────────────┘    └──────────────┘
+        │
+        X  no arbitrary external calls
 ```
 
-| You need | Contract surface |
-|----------|------------------|
-| Soulbound voting discipline | GovernanceNFT / DAOGovernor |
-| Rollback that matches precommitted calldata | RevertTokenLayer |
-| AI that can't go rogue on-chain | AIExecutor |
-| Provenance leaves | KnowledgeLedger + Merkle |
+### Step-by-step — how & why
+
+| Step | Component | How | Why |
+|-----:|-----------|-----|-----|
+| **1** | Register AI agent | `registerAgent` on AIExecutor | Identity without power |
+| **2** | Emit advice | `processAdvisory` | Structured recommendation only |
+| **3** | Transport | OrchestrationEngine / ledger | Advice becomes data, not a call |
+| **4** | Human/gov path | DAOGovernor + roles + SBT one-vote | Binding requires Chain-1 authority |
+| **5** | Execute | Executor role only | AI path cannot reach this |
+| **6** | Undo | `inverseCalldata` must hash-match | Rollback is cryptographic, not vibes |
+| **7** | Provenance | Merkle / KnowledgeLedger | Optional offline attest from Clean-Room |
+
+**Invariant 4.2:** Chain-3 **cannot** execute. See `docs/FORMAL_INVARIANTS.md`.
+
+---
+
+## How it works with the lab
+
+```text
+sovereign-clean-room ──optional one-way──► KnowledgeLedger leaf
+        (offline attest)                      (on-chain receipt)
+
+ADL-Governance ── rules for all ACTIVE repos including this one
+```
 
 ---
 
@@ -53,15 +71,12 @@ That's not a blog post — it's **Invariant 4.2**, tested at the contract bounda
 forge test -vv
 ```
 
-Validation write-ups live under `docs/` (B1 → B2b-3).  
-Offline attestation plane: **[sovereign-clean-room](https://github.com/beyond-repair/sovereign-clean-room)**.
+Docs: B1–B2b-3 under `docs/` · Release **v0.5.0-sagf**
 
 ---
 
 <div align="center">
 
-### ⭐ If you've been burned by “AI agents with keys” — this repo is for you.
-
-**v0.5.0-sagf** · [ADL-Governance](https://github.com/beyond-repair/ADL-Governance) · Atomic Dream Labs
+[Atomic Dream Labs](https://github.com/beyond-repair) · [sovereign-clean-room](https://github.com/beyond-repair/sovereign-clean-room)
 
 </div>
