@@ -1,86 +1,104 @@
-<div align="center">
+# BlockSwarm — SAGF Execution Substrate
 
-```
-╔══════════════════════════════════════════════════════════════╗
-║                                                              ║
-║   ██████╗ ██╗      ██████╗  ██████╗██╗  ██╗                  ║
-║   ██╔══██╗██║     ██╔═══██╗██╔════╝██║ ██╔╝                  ║
-║   ██████╔╝██║     ██║   ██║██║     █████╔╝                   ║
-║   ██╔══██╗██║     ██║   ██║██║     ██╔═██╗                   ║
-║   ██████╔╝███████╗╚██████╔╝╚██████╗██║  ██╗                  ║
-║   ╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝                  ║
-║                                                              ║
-║              ＳＷＡＲＭ  ·  ＳＡＧＦ  ｖ０．５                 ║
-╚══════════════════════════════════════════════════════════════╝
-```
-
-# BLOCKSWARM · SAGF
-
-### AI advises. It cannot execute.
-
-**THE CITY WRITES ITS OWN REALITY.**  
-**YOU JUST GOVERN IT.**
-
-[![MIT](https://img.shields.io/badge/License-MIT-a855f7?style=for-the-badge&labelColor=0f0f23)](LICENSE)
-[![Foundry](https://img.shields.io/badge/Foundry-tests-22d3ee?style=for-the-badge&labelColor=0f0f23)](https://getfoundry.sh)
-[![B2](https://img.shields.io/badge/B2-COMPLETE-22c55e?style=for-the-badge&labelColor=0f0f23)](docs/CHANGELOG.md)
-[![Invariant](https://img.shields.io/badge/AI_cannot_execute-ef4444?style=for-the-badge&labelColor=0f0f23)](#)
-[![Governance](https://img.shields.io/badge/ADL-ACTIVE-a855f7?style=for-the-badge&labelColor=0f0f23)](GOVERNANCE.md)
-
-```
-STABILITY  ████████████████████░░░░  82%
-ALERT      ░░░░░░░░░░░░░░░░░░░░░░░░  18%
-```
-
-</div>
+**Status:** Active (P2) · tag lineage includes `v0.5.0-sagf`  
+**Lab:** [Atomic Dream Labs / beyond-repair](https://github.com/beyond-repair)  
+**Stack:** Solidity · Foundry  
+**License:** MIT
 
 ---
 
-## ▌ MAIN OBJECTIVE
+## One-line purpose
 
-**REACH THE CORE TOWER**
+BlockSwarm is a **governed multi-agent coordination substrate**: AI may advise; it must not unilaterally execute value-moving actions.
 
-Four-chain substrate. Authority by construction. Rollback is cryptographic.
+Invariant:
+
+> **AI advises. It cannot execute.**
+
+---
+
+## Why it exists
+
+Decentralized coordination and multi-agent systems are converging. Most “agent + chain” demos let models trigger irreversible actions too early. BlockSwarm separates:
+
+| Layer | Responsibility |
+|-------|----------------|
+| Advice | Models, planners, Digital Double workers |
+| Authority | Explicit human / constitutional gates |
+| Settlement | Chain-backed records, cryptographic rollback paths |
+
+Strategic fit inside the lab:
+
+```
+Digital Double (workforce agents)
+        ↓
+Agent marketplace / task graph
+        ↓
+BlockSwarm (proof of work performed + authority)
+        ↓
+Sovereign-OS style governance semantics
+```
 
 ---
 
-## ▌ TOOLS
+## Operator tools (conceptual surface)
 
-| # | Tool | |
-|:-:|:----:|:-|
-| 1 | **SCAN** | Ledger |
-| 2 | **FORK** | Proposals |
-| 3 | **SPIKE** | Advice only |
-| 4 | **ANCHOR** | Inverse hash |
-| 5 | **ESCAPE** | Revert path |
+| Tool | Role |
+|------|------|
+| **SCAN** | Ledger / state inspection |
+| **FORK** | Proposals |
+| **SPIKE** | Advice only (non-executing) |
+| **ANCHOR** | Integrity / inverse-hash style commitments |
+| **ESCAPE** | Revert path |
+
+These names align with lab-wide SCAN / FORK / ANCHOR vocabulary used in portfolio census work.
 
 ---
+
+## Development
 
 ```bash
+# Foundry tests are the evidence boundary
 forge test -vv
 ```
 
----
+- Tests under `test/` define what is actually claimed.  
+- No mainnet deployment claim and no formal audit claim from this README.  
 
-## Governance (claim-capped)
-
-- Classification: **ACTIVE** (P2). See [GOVERNANCE.md](GOVERNANCE.md) and [SECURITY.md](SECURITY.md).
-- Tests in `test/` are the evidence boundary. No mainnet or audit claim.
-- Tag `v0.5.0-sagf` is operator-only (ADL-Governance operator queue).
+See `GOVERNANCE.md` and `SECURITY.md` when present.
 
 ---
 
-<div align="center">
+## Scope (claim-capped)
 
-```
-YOU WERE HERE BEFORE.
-VERSION 17 FAILED.
-DO NOT TRUST SABLE.
-THE CITY REMEMBERS.
-```
+**In scope**
 
-**REWRITE · BUILD · TRANSCEND**
+- Protocol experiments for advice vs execution separation  
+- Foundry-tested invariants  
+- Integration narrative with Digital Double and lab governance  
 
-[Atomic Dream Labs](https://github.com/beyond-repair)
+**Out of scope**
 
-</div>
+- Guaranteed mainnet security  
+- Token price or fundraising claims  
+- Unbounded autonomous treasuries  
+
+---
+
+## Related repositories
+
+| Repo | Relationship |
+|------|----------------|
+| [Digital_Double_virtual_workforce](https://github.com/beyond-repair/Digital_Double_virtual_workforce) | Agent workforce |
+| [Sovereign-OS](https://github.com/beyond-repair/Sovereign-OS) | Constitutional governance concepts |
+| [ADL-Governance](https://github.com/beyond-repair/ADL-Governance) | Lab-level claim and lifecycle rules |
+
+---
+
+## Contributing
+
+PRs must preserve the **non-execution of AI advice** invariant or explicitly document a gated exception with tests.
+
+---
+
+*Atomic Dream Labs — authority by construction*
