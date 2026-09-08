@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased] — Sweep-117 (2026-09-07)
+
+- Governance lock: classification remains **ACTIVE**.
+- Claim cap unchanged: no mainnet, audit, or economic-security claim.
+- Last verified Foundry Actions run: **33986287866** (success). Tag `v0.5.0-sagf` remains operator-only.
+- No contract mutation this sweep.
+
 ## [v0.5.0-sagf] — 2026-08-23
 
 ### Production-candidate release
