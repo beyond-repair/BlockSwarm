@@ -1,3 +1,37 @@
+<div align="center">
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║   ATOMIC DREAM LABS  ·  BEYOND-REPAIR                        ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+# BlockSwarm
+
+### AI advises. It cannot execute.
+
+[![Lifecycle](https://img.shields.io/badge/●_ACTIVE-22c55e?style=for-the-badge&labelColor=0f0f23)](https://github.com/beyond-repair/ADL-Governance)
+[![Claim](https://img.shields.io/badge/Claim_software-22c55e?style=for-the-badge&labelColor=0f0f23)](https://github.com/beyond-repair/ADL-Governance/blob/main/docs/CLAIM_VALIDATION.md)
+[![Governance](https://img.shields.io/badge/ADL--Governance-7c3aed?style=for-the-badge&labelColor=0f0f23)](https://github.com/beyond-repair/ADL-Governance)
+
+```
+LIFECYCLE   ACTIVE
+INVARIANT   AI advises · cannot execute
+NOT CLAIMED autonomous value movement
+```
+
+</div>
+
+---
+## ▌ STATUS
+
+Active execution substrate. Tag lineage includes `v0.5.0-sagf`. Solidity · Foundry.  
+Invariant: **AI advises. It cannot execute.**
+
+---
+
+## ▌ PRESERVED BODY
+
 # BlockSwarm — SAGF Execution Substrate
 
 **Status:** Active (P2) · tag lineage includes `v0.5.0-sagf`  
@@ -102,3 +136,14 @@ PRs must preserve the **non-execution of AI advice** invariant or explicitly doc
 ---
 
 *Atomic Dream Labs — authority by construction*
+
+---
+
+<div align="center">
+
+**REWRITE · BUILD · TRANSCEND**
+
+**William (Brian) Ware** · [Atomic Dream Labs](https://github.com/beyond-repair)  
+Governing source: [ADL-Governance](https://github.com/beyond-repair/ADL-Governance) · [Claim levels 0–5](https://github.com/beyond-repair/ADL-Governance/blob/main/docs/CLAIM_VALIDATION.md)
+
+</div>
