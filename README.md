@@ -89,17 +89,42 @@ These names align with lab-wide SCAN / FORK / ANCHOR vocabulary used in portfoli
 
 ---
 
-## Development
+## Development / runbook
+
+Stranger clone path (Foundry evidence boundary). OpenZeppelin **v4.9.6** and forge-std **v1.9.4** are pinned as git submodules.
 
 ```bash
-# Foundry tests are the evidence boundary
+# 1) Install Foundry (once per machine)
+curl -L https://foundry.paradigm.xyz | bash
+# restart shell or: export PATH="$HOME/.foundry/bin:$PATH"
+foundryup
+
+# 2) Clone with submodules (or init after clone)
+git clone --recurse-submodules https://github.com/beyond-repair/BlockSwarm.git
+cd BlockSwarm
+# If you cloned without --recurse-submodules:
+#   git submodule update --init --recursive
+
+# Fallback if submodules are empty (matches CI):
+#   mkdir -p lib
+#   git clone --depth 1 --branch v4.9.6 https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable.git lib/openzeppelin-contracts-upgradeable
+#   git clone --depth 1 --branch v4.9.6 https://github.com/OpenZeppelin/openzeppelin-contracts.git lib/openzeppelin-contracts
+#   git clone --depth 1 --branch v1.9.4 https://github.com/foundry-rs/forge-std.git lib/forge-std
+
+# 3) Build and test
+forge build
 forge test -vv
+
+# 4) Optional: local deploy script dry-run (no broadcast)
+forge script script/DeploySAGF.s.sol:DeploySAGF -vv
 ```
 
-- Tests under `test/` define what is actually claimed.  
-- No mainnet deployment claim and no formal audit claim from this README.  
+- Tests under `test/` define what is actually claimed (advisory-only AIExecutor, one-vote SBT, role separation, inverse binding, deploy wiring, Merkle).
+- No mainnet deployment claim and no formal audit claim from this README.
+- `hardhat.config.js` remains for the legacy Hardhat deploy helper under `scripts/deployment/`; Foundry is the supported build/test path.
+- Copy `env.example` to `.env` only if you intend a live RPC deploy; never commit secrets.
 
-See `GOVERNANCE.md` and `SECURITY.md` when present.
+See `GOVERNANCE.md`, `SECURITY.md`, and `docs/` when present.
 
 ---
 

@@ -2,10 +2,18 @@
 
 ## Prerequisites
 
+Prefer git submodules (already pinned in `.gitmodules`):
+
 ```bash
-forge install OpenZeppelin/openzeppelin-contracts-upgradeable --no-commit
-forge install OpenZeppelin/openzeppelin-contracts --no-commit
-forge install foundry-rs/forge-std --no-commit
+git submodule update --init --recursive
+```
+
+Or install manually (OpenZeppelin **v4.9.6**, forge-std **v1.9.4**):
+
+```bash
+forge install OpenZeppelin/openzeppelin-contracts-upgradeable@v4.9.6 --no-commit
+forge install OpenZeppelin/openzeppelin-contracts@v4.9.6 --no-commit
+forge install foundry-rs/forge-std@v1.9.4 --no-commit
 ```
 
 `foundry.toml` already remaps:

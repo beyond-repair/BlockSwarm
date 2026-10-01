@@ -1,0 +1,23 @@
+# Foundry
+cache/
+out/
+broadcast/
+foundry.lock
+
+# Hardhat (legacy dual toolchain)
+node_modules/
+artifacts/
+typechain-types/
+coverage/
+coverage.json
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
