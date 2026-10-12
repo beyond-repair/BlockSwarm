@@ -2,7 +2,7 @@
 
 **Classification:** ACTIVE (P2)
 **Governing source:** [ADL-Governance](https://github.com/beyond-repair/ADL-Governance)
-**Sweep:** 117 (2026-09-07)
+**Sweep:** 309 (2026-10-12)
 
 ## Claim cap
 
@@ -15,7 +15,7 @@
 
 - Local: `forge test -vv`
 - CI: `.github/workflows/foundry.yml`
-- Last verified CI: green run id **33986287866** (2026-09-05, head `a79c83f0df926bafd0ac379bf384e95a38a21a6c`). Sweep-117 docs push will trigger a new Foundry run; treat that conclusion as PENDING until Actions reports success.
+- Last verified CI: green run id **36859452185** (2026-10-01, head `6e90f6f85c0969fa8a262a70ceba833d618a22db`).
 
 ## Lifecycle
 
