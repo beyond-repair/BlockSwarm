@@ -1,11 +1,13 @@
 # Changelog
 
-## [Unreleased] — Sweep-117 (2026-09-07)
+## [Unreleased] — Sweep-537 (2026-10-26)
 
-- Governance lock: classification remains **ACTIVE**.
-- Claim cap unchanged: no mainnet, audit, or economic-security claim.
-- Last verified Foundry Actions run: **33986287866** (success). Tag `v0.5.0-sagf` remains operator-only.
-- No contract mutation this sweep.
+- Randomized portfolio completion sweep confirmation: classification remains **ACTIVE**.
+- Claim cap unchanged: **AI advises. It cannot execute.** No mainnet, audit, or economic-security claim.
+- Last verified Foundry Actions run: **38252865430** (success on `98480104c353ffd22e1522943a5c5f6545044d18`).
+- Tags and releases remain empty (operator residual for `v0.5.0-sagf`).
+- No open Dependabot alerts. Submodules pinned (forge-std v1.9.4, OpenZeppelin v4.9.6). Tests under `test/` present.
+- No contract mutation this sweep. Documentation only.
 
 ## [v0.5.0-sagf] — 2026-08-23
 
